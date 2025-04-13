@@ -15,4 +15,6 @@ Info on models https://github.com/raspberrypi/imx500-models/blob/main/README.md
 
 Forum thread https://forums.raspberrypi.com/viewtopic.php?t=383752
 
+You might wish to increase the default Contiguous Memory Allocator (CMA) value for your Pi, see Picamera2 Library manual.
+
 It is known 'Network Firmware Upload' sometimes fails, just try again.
