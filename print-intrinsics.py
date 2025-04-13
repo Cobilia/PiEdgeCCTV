@@ -1,5 +1,6 @@
 #!/home/<user>/CAMERA/PYTHON/VirEnv/bin/python
 
+
 # Prints intrinsics classes labels for a specific rpk file.
 # 
 # Required labels can then be added to 'interested' in piedgecctv.py
@@ -9,6 +10,8 @@
 # The original above also provides acces to 'assets/coco_labels.txt' whereas this doesn't.
 
 
+# 0) Configure lines containing <user> with settings for your environment.
+#
 # 1) sudo apt update && sudo apt full-upgrade
 #    sudo apt install imx500-all
 #    sudo reboot
