@@ -1,5 +1,8 @@
 #!/home/<user>/CAMERA/PYTHON/VirEnv/bin/python
 
+
+# 0) Configure lines containing <user> with settings for your environment.
+#
 # 1) sudo apt update && sudo apt full-upgrade
 #    sudo apt install imx500-all
 #    sudo apt install python3-opencv
@@ -37,6 +40,8 @@
 # Info on models https://github.com/raspberrypi/imx500-models/blob/main/README.md
 # 
 # Forum thread https://forums.raspberrypi.com/viewtopic.php?t=383752
+#
+# You might wish to increase the default Contiguous Memory Allocator (CMA) value for your Pi, see Picamera2 Library manual.
 # 
 # It is known 'Network Firmware Upload' sometimes fails, just try again.
 
@@ -49,10 +54,8 @@ import cv2
 import numpy as np
 
 from picamera2.encoders import H264Encoder
-from picamera2.outputs import FileOutput
 from picamera2.outputs import CircularOutput2
 from picamera2.outputs import PyavOutput
-from picamera2 import MappedArray
 
 from picamera2 import MappedArray, Picamera2, Preview
 from picamera2.devices import IMX500
