@@ -1,6 +1,5 @@
 #!/home/<user>/CAMERA/PYTHON/VirEnv/bin/python
 
-
 # 0) Configure lines containing <user> with settings for your environment.
 #
 # 1) sudo apt update && sudo apt full-upgrade
@@ -268,6 +267,7 @@ def concatenate_vids(input_files, output_file):
     with open(text_file_shm, "w") as f:
         for file in input_files:
             f.write(f"file '{file}'\n")
+        f.close()
 
     # Construct the ffmpeg command
     command = [
