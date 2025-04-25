@@ -22,7 +22,7 @@
 #    ./piedgecctv.py
 
 
-# Version 0.1.
+# Version 0.3.
 # 
 # PiEdgeCCTV is an edge AI CCTV system for Raspberry Pi using the IMX500 AI Camera.
 # 
@@ -208,6 +208,7 @@ def vidrecord():
         for i in interested:
             if i == lbl:
                 hit = True
+                break
     
     global recording
     global ltime
