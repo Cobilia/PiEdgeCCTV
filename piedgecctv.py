@@ -86,7 +86,7 @@ iou = 0.65
 max_detections = 5
 
 # What we want to record
-interested = ('person', 'cat', 'dog')
+interested = ('person', 'cat', 'dog') # NOTE: if there is only one item in this list there MUST be a trailing comma e.g. ('dog',)!
 
 # Frames per second
 fps = 5
