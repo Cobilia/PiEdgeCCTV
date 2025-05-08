@@ -22,7 +22,7 @@
 #    ./piedgecctv.py
 
 
-# Version 0.3.
+# Version 0.4.
 # 
 # PiEdgeCCTV is an edge AI CCTV system for Raspberry Pi using the IMX500 AI Camera.
 # 
@@ -213,7 +213,7 @@ def vidrecord():
     global recording
     global ltime
     global circular
-    global ip, op, op_pre, op_pre_start_fix
+    global ip, op, op_pre, op_pre_start_fix, op_post
     
     if not recording:
         now = datetime.datetime.now()
@@ -243,22 +243,31 @@ def vidrecord():
             recording = False
             circular = CircularOutput2(buffer_duration_ms=preroll)
             picam2.start_recording(encoder, circular)
-            vid_start_fix(op_pre, op_pre_start_fix)
-            concatenate_vids(ip, op)
+  
+            # When events happen close together there might not be enough pre-roll available to make a file
+            if os.path.exists(op_pre):
+                vid_start_fix(op_pre, op_pre_start_fix)
+                concatenate_vids(ip, op)
+            else:                
+                os.rename(op_post, op)
        
 
 def vid_start_fix(faulty, fixed):
     
     # The flushed CircularOutput2 video has a start value which causes problems
     command = [
-        "ffmpeg",
+        "/usr/bin/ffmpeg",
         "-i", faulty,
         "-metadata", "start=0.000000",
         "-c", "copy",
         fixed,
     ]
     
-    subprocess.run(command, check=True, capture_output=True, text=True)
+    try:
+        subprocess.run(command, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during vid_start_fix: {e}")
+        print(f"ffmpeg output (stderr):\n{e.stderr}") #print ffmpeg error message.
     
 
 def concatenate_vids(input_files, output_file):
@@ -272,7 +281,7 @@ def concatenate_vids(input_files, output_file):
 
     # Construct the ffmpeg command
     command = [
-        "ffmpeg",
+        "/usr/bin/ffmpeg",
         "-f", "concat",
         "-safe", "0",  # Allow unsafe file paths (if needed)
         "-i", text_file_shm,
@@ -280,14 +289,17 @@ def concatenate_vids(input_files, output_file):
         output_file,
     ]
 
-    subprocess.run(command, check=True, capture_output=True, text=True)
-
-    # Clean up temporary files
-    os.remove(text_file_shm)
-    os.remove(op_pre)
-    for z in input_files:
-        os.remove(z)
-
+    try:
+        subprocess.run(command, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during concatenate_vids: {e}")
+        print(f"ffmpeg output (stderr):\n{e.stderr}") #print ffmpeg error message.
+    finally:
+        # Clean up temporary files
+        os.remove(text_file_shm)
+        os.remove(op_pre)
+        for z in input_files:
+            os.remove(z)
 
 
 if __name__ == "__main__":
