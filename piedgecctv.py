@@ -1,5 +1,6 @@
 #!/home/<user>/CAMERA/PYTHON/VirEnv/bin/python
 
+
 # 0) Configure lines containing <user> with settings for your environment.
 #
 # 1) sudo apt update && sudo apt full-upgrade
@@ -22,11 +23,13 @@
 #    ./piedgecctv.py
 
 
-# Version 0.4.
+# Version 1.1.
 # 
 # PiEdgeCCTV is an edge AI CCTV system for Raspberry Pi using the IMX500 AI Camera.
 # 
 # It records video when a matched inference occurs providing combined pre-roll, event and post-roll capture.
+#
+# Version 1.1+ includes optional motion detection which activates when light level is too low for matched inferences to occur.
 # 
 # Heavily based on https://github.com/raspberrypi/picamera2/blob/main/examples/imx500/imx500_object_detection_demo.py
 # 
@@ -40,14 +43,45 @@
 # 
 # Forum thread https://forums.raspberrypi.com/viewtopic.php?t=383752
 #
-# You might wish to increase the default Contiguous Memory Allocator (CMA) value for your Pi, see Picamera2 Library manual.
+# You might wish to increase the default Contiguous Memory Allocator (CMA) value for your Pi.
 # 
 # It is known 'Network Firmware Upload' sometimes fails, just try again.
+
+
+# Motion Detection (MD).
+#
+# Motion detection is an optional feature designed to operate at *night* when the camera lux value is below a threshold.
+#
+# It is motion detection between frames & does not use a PIR, based on https://github.com/raspberrypi/picamera2/blob/main/examples/capture_motion.py
+#
+# It can trigger for example when a security light has come on but the IMX500 offers very limited visual detail at low light so usefulness may vary.
+#
+# By default MD capability is disabled, to enable set 'mdenabled = True'.
+#
+# You will likely also need to determine values for 'mse_threshold' and 'metadata_lux_threshold' that work for your setup.
+#
+# MD can ignore the *top* part of the video 'ignore_hrows' to mask out swaying tree branches, clouds, etc, particularly useful during dawn or dusk. Recorded video is unchanged.
+#
+# MD operates on the 'lores' stream so timestamping is disabled to prevent interference.
+#
+# To show the preview window is live the current Lux value is displayed in the preview window title bar, this can also aid with tuning.
+#
+# At a glance it easy to see what configuration is in place:
+#
+# - Lux value shown in preview window title bar / no timestamp in preview window = AI and MD is enabled.
+#
+# - Timestamp show in preview window / no lux value in preview window title bar = only AI is enabled.
+#
+# In both cases a timestamp is applied to 'main' video recordings.
+#
+# Keep an eye on the contents of 'mem_folder' for any failed recordings, though hopefully this shouldn't happen.
+
 
 
 import datetime
 import time
 import os
+import shutil
 import subprocess
 import cv2
 import numpy as np
@@ -73,10 +107,13 @@ output_folder = "/home/<user>/VIDCAPTURE"
 # ffmpeg concat text file
 text_file_shm = '/dev/shm/input_list.txt'
 
-# Start in non-recording mode
-recording = False
+# When starting, 'False' means it does not begin recording AI straight away
+recordingai = False
 
-# Time difference set to zero
+# When starting, 'False' means it does not begin recording MD straight away
+recordingmd = False
+
+# Initial time difference set to zero at start
 ltime = 0
 
 # AI
@@ -121,6 +158,27 @@ preroll = 7000
 postroll = 8.0
 
 last_detections = []
+
+
+# MOTION DETECTION (MD)
+#
+# Enable or disable motion detection
+mdenabled = False
+# Mean Square Error (think of this as the difference between frames), only record when the mse is above this value
+mse_threshold = 2.9
+# Switch to nocturnal MD when the lux level falls below this value
+metadata_lux_threshold = 3.0 
+# Only check lux every (s), 300 is a compromise between too low causing flapping & too long missing a change
+check_lux_every = 300 
+# Check lux initial time difference set to zero at start
+cltime = 0
+# Set 'previous_frame' to None to start with
+previous_frame = None
+# If False do not start in nightime (MD) mode
+nightime = False
+# Ignores this number of height rows starting from the *top*, useful for filter out swaying tree branches & moving clouds during dawn or dusk
+ignore_hrows = 0  # e.g. 0 provides full height MD, 400 means only 80 rows at the *bottom* detect motion (for a 480 'loresh' value)
+
 
 
 class Detection:
@@ -185,10 +243,11 @@ def apply_timestamp(request):
     with MappedArray(request, "main") as m:
     
         cv2.putText(m.array, ts, tsmorigin, tsfont, tsmscale, tscolour, tsmthickness)
-        
-    with MappedArray(request, "lores") as n:
-    
-        cv2.putText(n.array, ts, tslorigin, tsfont, tslscale, tscolour, tslthickness)
+
+    # Cannot have timestamp on lores as it interferes with motion detection
+    if not mdenabled:
+        with MappedArray(request, "lores") as n:
+            cv2.putText(n.array, ts, tslorigin, tsfont, tslscale, tscolour, tslthickness)
         
 
 def vidrecord():
@@ -210,12 +269,12 @@ def vidrecord():
                 hit = True
                 break
     
-    global recording
+    global recordingai
     global ltime
     global circular
     global ip, op, op_pre, op_pre_start_fix, op_post
     
-    if not recording:
+    if not recordingai:    # recordingai = False
         now = datetime.datetime.now()
         nowform = now.strftime('%Y-%m-%d_%Hh%Mm%Ss')
         op_pre = os.path.join(mem_folder, nowform) + "_pre." + opformat
@@ -225,31 +284,31 @@ def vidrecord():
         os.makedirs(output_folder, exist_ok = True)
         op = os.path.join(output_folder, nowform) + "." + opformat
                    
-    if hit and not recording:    # hit = True and recording = False, we need to start recording 
-        print("New recording started at:", nowform)
+    if hit and not recordingai:    # hit = True and recordingai = False, we need to start recording 
+        print(f"Event (AI): {nowform}")
         circular.open_output(PyavOutput(f"{op_pre}", format=opformat))
         picam2.stop_encoder()
         output = PyavOutput(f"{op_post}", format=opformat)
         picam2.start_recording(encoder, output)
-        recording = True
+        recordingai = True
         ltime = time.time()
         
-    elif hit and recording:    # hit = True and recording = True, make sure ltime is the last frame
+    elif hit and recordingai:    # hit = True and recordingai = True, make sure ltime is the last frame
         ltime = time.time()
         
-    elif recording:  # hit = false and recording = True, we need to stop recording
+    elif recordingai:    # recordingai = True, we need to stop recording
         if time.time() - ltime > postroll:
             picam2.stop_encoder()
-            recording = False
+            recordingai = False
             circular = CircularOutput2(buffer_duration_ms=preroll)
             picam2.start_recording(encoder, circular)
-  
+    
             # When events happen close together there might not be enough pre-roll available to make a file
             if os.path.exists(op_pre):
                 vid_start_fix(op_pre, op_pre_start_fix)
                 concatenate_vids(ip, op)
-            else:                
-                os.rename(op_post, op)
+            else:
+                shutil_return = shutil.move(op_post, op)
        
 
 def vid_start_fix(faulty, fixed):
@@ -288,7 +347,7 @@ def concatenate_vids(input_files, output_file):
         "-c", "copy",  # Copy streams without re-encoding
         output_file,
     ]
-
+    
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
@@ -302,6 +361,65 @@ def concatenate_vids(input_files, output_file):
             os.remove(z)
 
 
+def motiondetect():
+    
+    global recordingmd
+    global ltime
+    global circular
+    global ip, op, op_pre, op_pre_start_fix, op_post
+    global previous_frame
+
+    current_frame = picam2.capture_buffer("lores")
+
+    # Catch when 'ignore_hrows = 0'
+    if ignore_hrows == 0:
+        current_frame = current_frame[:loresw * loresh].reshape(loresh, loresw)
+    else:
+        current_frame = current_frame[loresw * ignore_hrows:loresw * loresh].reshape((loresh - ignore_hrows), loresw)
+    
+    if previous_frame is not None:
+        # Measure pixels differences between current and previous frame
+        mse = np.square(np.subtract(current_frame, previous_frame)).mean()
+
+        if mse > mse_threshold:
+            if not recordingmd:
+                now = datetime.datetime.now()
+                nowform = now.strftime('%Y-%m-%d_%Hh%Mm%Ss')
+                op_pre = os.path.join(mem_folder, nowform) + "motion_pre." + opformat
+                op_pre_start_fix = os.path.join(mem_folder, nowform) + "motion_pre_start_fix." + opformat
+                op_post = os.path.join(mem_folder, nowform) + "motion_post." + opformat
+                ip = (op_pre_start_fix, op_post)
+                os.makedirs(output_folder, exist_ok = True)
+                op = os.path.join(output_folder, nowform) + "_motion." + opformat
+
+                print(f"Event (MD): {nowform}  (mse: {mse:.2f})")
+                
+                circular.open_output(PyavOutput(f"{op_pre}", format=opformat))
+                picam2.stop_encoder()
+                output = PyavOutput(f"{op_post}", format=opformat)
+                picam2.start_recording(encoder, output)
+
+                recordingmd = True
+            ltime = time.time()
+        else:
+             if recordingmd and time.time() - ltime > postroll:
+                picam2.stop_encoder()
+                recordingmd = False
+
+                circular = CircularOutput2(buffer_duration_ms=preroll)
+                picam2.start_recording(encoder, circular)
+                
+                # When events happen close together there might not be enough pre-roll available to make a file
+                if os.path.exists(op_pre):
+                    vid_start_fix(op_pre, op_pre_start_fix)
+                    concatenate_vids(ip, op)
+                else:
+                    shutil_return = shutil.move(op_post, op)
+                                           
+    previous_frame = current_frame
+
+
+
 if __name__ == "__main__":
 
     imx500 = IMX500(model)
@@ -310,7 +428,10 @@ if __name__ == "__main__":
     picam2 = Picamera2(imx500.camera_num)
     
     main  = {'size': (mainw, mainh), 'format': 'XRGB8888'}
-    lores = {'size': (loresw, loresh), 'format': 'XRGB8888'}  # RPi5
+    if mdenabled:
+        lores = {'size': (loresw, loresh), 'format': 'YUV420'}  # MD works best on luminance (we ignore U & V)
+    else:
+        lores = {'size': (loresw, loresh), 'format': 'XRGB8888'}  # Invalid for models lower than RPi5
 
     camcontrols = {'FrameRate': fps}
     
@@ -325,6 +446,10 @@ if __name__ == "__main__":
 
     #picam2.start_preview(Preview.QT, x=2, y=64)
     picam2.start_preview(Preview.QTGL, x=2, y=64)
+    
+    if mdenabled:
+        # Display Lux in preview window title bar to show the preview window is actively 'live', also useful for tuning.
+        picam2.title_fields = ["Lux"]
 
     picam2.start(config, show_preview=True)
     
@@ -332,12 +457,47 @@ if __name__ == "__main__":
 
     picam2.start_recording(encoder, circular)
     
-    
     last_results = None
 
+
     while True:
-     
-        last_results = parse_detections(picam2.capture_metadata())
-        
-        vidrecord()
  
+        if mdenabled:
+
+            # Only check lux value at intervals
+            if  time.time() - cltime > check_lux_every:           
+                metadata = picam2.capture_metadata()
+                cltime = time.time()
+                if metadata['Lux'] < metadata_lux_threshold:
+                    nightime = True
+                else:
+                    nightime = False
+ 
+                #nowtemp = datetime.datetime.now()
+                #nowformtemp = nowtemp.strftime('%Y-%m-%d_%Hh%Mm%Ss')
+                #print(f"  Lux: {metadata['Lux']:>8.2f}   Nightime: {nightime:<2}  {nowformtemp}  RecordingAI: {recordingai:<2}   RecordingMD: {recordingmd:<2}")           
+            
+            # Day to night
+            if nightime:
+                # Don't move from AI to MD until an existing AI recording completes
+                if recordingai:
+                    last_results = parse_detections(picam2.capture_metadata())
+                    vidrecord() 
+                else:
+                    motiondetect()
+            
+            # Night to day
+            else:
+                # Don't move from MD to AI until an existing MD recording completes
+                if recordingmd:
+                    motiondetect()
+                else:
+                    last_results = parse_detections(picam2.capture_metadata())
+                    vidrecord()
+                    
+        else:
+                        
+            last_results = parse_detections(picam2.capture_metadata())
+            vidrecord()         
+  
+  
