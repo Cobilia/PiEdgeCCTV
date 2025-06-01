@@ -3,6 +3,8 @@
 
 It records video when a matched inference occurs providing combined pre-roll, event and post-roll capture.
 
+Version 1.2+ adds a web interface, local subnet only. 
+
 Version 1.1+ includes optional motion detection which activates when light level is too low for matched inferences to occur.
 
 Heavily based on https://github.com/raspberrypi/picamera2/blob/main/examples/imx500/imx500_object_detection_demo.py
@@ -13,15 +15,13 @@ Plenty of room for improvement including post-processing framework, am not proud
 
 Prototyped using a Raspberry Pi 5 16GB. IMX500 AI Camera info https://www.raspberrypi.com/documentation/accessories/ai-camera.html
 
-Info on models https://github.com/raspberrypi/imx500-models/blob/main/README.md
-
+Tested on Raspberry Pi OS version Debian 12.11.
+ 
 Forum thread https://forums.raspberrypi.com/viewtopic.php?t=383752
 
 You might wish to increase the default Contiguous Memory Allocator (CMA) value for your Pi.
 
-It is known 'Network Firmware Upload' sometimes fails, just try again.
-
-
+It is known 'Network Firmware Upload' sometimes fails (remains at 0%, sometimes repeating), CTRL-C and try again.
 
 
 ### Motion Detection (MD)
@@ -50,6 +50,40 @@ At a glance it easy to see what configuration is in place:
 
 In both cases a timestamp is applied to 'main' video recordings.
 
-Keep an eye on the contents of '**mem_folder**' for any failed recordings, though hopefully this shouldn't happen.
 
+### Web interface - 'web.py'
+
+Inspired by Raspberry Pi Camera Guide 2nd Edition https://github.com/raspberrypipress/official-raspberry-pi-camera-guide-2e/tree/main/code/c
+
+The web interface automatically runs & by default is available at http://\<ip address\>:5000
+
+This will continue to run even when 'piedgecctv.py' is terminated, if you wish to stop it kill the process.
+
+
+### Installation
+
+1) sudo apt update && sudo apt full-upgrade  
+   sudo apt install imx500-all  
+   sudo apt install python3-opencv  
+   sudo reboot  
+
+2) Build a venv:  
+   python3 -m venv /home/\<user\>/CAMERA/PYTHON/VirEnv --system-site-packages
+
+3) Check out the latest release.
+
+4) Configure the shebang line containing \<user\> at the beginning of 'piedgecctv.py' to match your venv.
+
+5) In 'conf/conf.py' configure 'base' and 'model' containing \<user\>.
+
+6) Set your rpk 'model' of choice, info on models https://github.com/raspberrypi/imx500-models/blob/main/README.md
+
+7) Ensure 'piedgecctv.py' is executable:  
+   chmod 755 piedgecctv.py
+
+8) Operate from the venv:  
+   source ~/CAMERA/PYTHON/VirEnv/bin/activate
+
+9) Run:  
+   ./piedgecctv.py
 
