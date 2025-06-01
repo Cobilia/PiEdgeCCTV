@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <script>
+
+    function toggle(source) {
+        checkboxes = document.getElementsByName('cbox');
+        for(var i=0, n=checkboxes.length;i<n;i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+    </script>
+
+	<meta charset="utf-8">
+	<title>PiEdgeCCTV</title>
+	<link rel="icon" type="image/x-icon" href="../static/favicon.ico">
+	<style>
+        .button {
+            display: inline-block;
+            font-size: 24px;
+            text-align: center;
+            color: #fff;
+            background-color: #4CAF50;
+        }
+
+        .center { text-align: center; }
+        body {
+            font: 100 1.8em Helvetica, Arial, sans-serif;
+            background-color: grey;
+        }
+        h1 { color: #0000ff; }
+        h2 { color: #6600cc; }
+        h3 { color: #003300; }
+        h4 { color: #113300; }
+        
+        input[type="checkbox"] {
+            width: 25px;
+            height: 25px;
+        }
+	</style>
+</head>
+<body>
+    <h1 class="center">PiEdgeCCTV</h1>
+    <p class="center"><span style="color: #FFA500">{{ nowform }}</span></p>
+    <p class="center">Storage: {{ df_root_pc }}% free</p>
+    <p class="center">MemDisk: {{ df_memdisk_pc }}% free</p>
+    {% if proc: %}
+        <p class="center">Proc running: <span style="color: #00F000">{{ proc }}</span></p>
+    {% else %}
+        <p class="center">Proc running: <span style="color: #D00000">{{ proc }}</span></p>
+    {% endif %}
+     
+    <hr>
+    {% if vids|length > 0: %}
+        <form class="center" action="/" method="post">
+            <h4 class="center">
+                <input type="checkbox" onClick="toggle(this)" /> Toggle All<br/>
+            </h4>  
+            {% for v in vids %} 
+                <h4 class="center">
+                    <input type="checkbox" name="cbox" value="{{ v }}" />
+                    <a href="{{opf}}/{{ v }}"> {{ v }}</a><br>
+                </h4>     
+            {% endfor %} 
+            <hr>  
+            <input class="button" type="submit" id="submit_button" onclick="return confirm('Delete selected files?');" name="submit" value="Delete">
+        </form>
+    {% else %}
+        <h4 class="center">No videos to display</h4>
+    <hr> 
+    {% endif %}
+
+
+</body>
+</html>
