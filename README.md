@@ -5,6 +5,8 @@ It records video when a matched inference occurs providing combined pre-roll, ev
 
 Version 1.2+ adds a web interface, local subnet only. 
 
+![Image](https://github.com/user-attachments/assets/fe305560-af68-4633-8b01-0fe84f533be2)
+
 Version 1.1+ includes optional motion detection which activates when light level is too low for matched inferences to occur.
 
 Heavily based on https://github.com/raspberrypi/picamera2/blob/main/examples/imx500/imx500_object_detection_demo.py
@@ -21,7 +23,7 @@ Forum thread https://forums.raspberrypi.com/viewtopic.php?t=383752
 
 You might wish to increase the default Contiguous Memory Allocator (CMA) value for your Pi.
 
-It is known 'Network Firmware Upload' sometimes fails (remains at 0%, sometimes repeating), CTRL-C and try again.
+It is known 'Network Firmware Upload' sometimes fails (remains at 0%, sometimes repeating), CTRL-C and try again.  
 
 
 ### Motion Detection (MD)
@@ -48,7 +50,7 @@ At a glance it easy to see what configuration is in place:
 
 - Timestamp show in preview window / no lux value in preview window title bar = only AI is enabled.
 
-In both cases a timestamp is applied to 'main' video recordings.
+In both cases a timestamp is applied to 'main' video recordings.  
 
 
 ### Web interface - 'web.py'
@@ -57,7 +59,7 @@ Inspired by Raspberry Pi Camera Guide 2nd Edition https://github.com/raspberrypi
 
 The web interface automatically runs & by default is available at http://\<ip address\>:5000
 
-This will continue to run even when 'piedgecctv.py' is terminated, if you wish to stop it kill the process.
+This will continue to run even when 'piedgecctv.py' is terminated, if you wish to stop it kill the process.  
 
 
 ### Installation
@@ -85,5 +87,11 @@ This will continue to run even when 'piedgecctv.py' is terminated, if you wish t
    source ~/CAMERA/PYTHON/VirEnv/bin/activate
 
 9) Run:  
-   ./piedgecctv.py
+   ./piedgecctv.py  
 
+### Structure
+
+![Image](https://github.com/user-attachments/assets/2646315c-17bb-4bc4-a938-79c9176605ba)
+
+
+  
