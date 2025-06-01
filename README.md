@@ -61,6 +61,8 @@ The web interface automatically runs & by default is available at http://\<ip ad
 
 This will continue to run even when 'piedgecctv.py' is terminated, if you wish to stop it kill the process.  
 
+"Proc running:" shows if the 'piedgecctv.py' process is running.
+
 
 ### Installation
 
