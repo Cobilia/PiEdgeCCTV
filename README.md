@@ -53,7 +53,7 @@ In both cases a timestamp is applied to 'main' video recordings.
 
 ### Web interface - 'web.py'
 
-Inspired by Raspberry Pi Camera Guide 2nd Edition https://github.com/raspberrypipress/official-raspberry-pi-camera-guide-2e/tree/main/code/c
+Inspired by Raspberry Pi Camera Guide 2nd Edition https://github.com/raspberrypipress/official-raspberry-pi-camera-guide-2e/blob/main/code/ch16/camera_underwater.py
 
 The web interface automatically runs & by default is available at http://\<ip address\>:5000
 
