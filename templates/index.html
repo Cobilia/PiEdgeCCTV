@@ -54,6 +54,7 @@
     <hr>
     {% if vids|length > 0: %}
         <form class="center" action="/" method="post">
+            <input class="button" type="submit" id="submit_button" onclick="return confirm('Delete selected files?');" name="submit" value="Delete">
             <h4 class="center">
                 <input type="checkbox" onClick="toggle(this)" /> Toggle All<br/>
             </h4>  
@@ -64,7 +65,6 @@
                 </h4>     
             {% endfor %} 
             <hr>  
-            <input class="button" type="submit" id="submit_button" onclick="return confirm('Delete selected files?');" name="submit" value="Delete">
         </form>
     {% else %}
         <h4 class="center">No videos to display</h4>
