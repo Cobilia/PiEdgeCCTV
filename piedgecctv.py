@@ -6,7 +6,7 @@
 #    sudo apt install python3-opencv
 #    sudo reboot
 #
-# 2) Build a venv, e.g.:
+# 2) Build a venv:
 #    python3 -m venv /home/<user>/CAMERA/PYTHON/VirEnv --system-site-packages
 #
 # 3) Checkout the code.
@@ -27,7 +27,7 @@
 #    ./piedgecctv.py
 
 
-# Version 1.2.
+# Version 1.3.
 # 
 # PiEdgeCCTV is an edge AI CCTV system for Raspberry Pi using the IMX500 AI Camera.
 # 
@@ -193,8 +193,12 @@ def apply_timestamp(request):
 def vidrecord():
 
     detections = last_results
-    if detections is None:
+    
+    global recordingai
+    
+    if detections is None and not recordingai:		# Arrives here when "detections is empty" and "recordingai = False"
         return
+    
     labels = get_labels()
     
     hit = False
@@ -209,12 +213,12 @@ def vidrecord():
                 hit = True
                 break
     
-    global recordingai
     global ltime
     global circular
     global ip, op, op_pre, op_pre_start_fix, op_post
     
-    if not recordingai:    # recordingai = False
+    
+    if hit and not recordingai: 		# Arrives here when "recordingai = False" and also "hit = True"
         now = datetime.datetime.now()
         nowform = now.strftime('%Y-%m-%d_%Hh%Mm%Ss')
         op_pre = os.path.join(c.mem_folder, nowform) + "_pre." + c.opformat
@@ -226,8 +230,7 @@ def vidrecord():
             op = os.path.join(base_output_folder, nowform) + "_ai." + c.opformat
         else:
             op = os.path.join(base_output_folder, nowform) + "." + c.opformat
-                   
-    if hit and not recordingai:    # hit = True and recordingai = False, we need to start recording 
+            
         print(f"Event (ai): {nowform}")
         circular.open_output(PyavOutput(f"{op_pre}", format=c.opformat))
         picam2.stop_encoder()
@@ -236,10 +239,10 @@ def vidrecord():
         recordingai = True
         ltime = time.time()
         
-    elif hit and recordingai:    # hit = True and recordingai = True, make sure ltime is the last frame
+    elif hit and recordingai:   		# Arrives here when "recordingai = True" and also "hit = True". Make sure ltime is the last frame
         ltime = time.time()
         
-    elif recordingai:    # recordingai = True, we need to stop recording
+    elif recordingai:					# Arrives here when "recordingai = True" and also "hit = False". We need to stop recording
         if time.time() - ltime > c.postroll:
             picam2.stop_encoder()
             recordingai = False
