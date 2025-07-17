@@ -96,4 +96,46 @@ This will continue to run even when 'piedgecctv.py' is terminated, if you wish t
 ![Image](https://github.com/user-attachments/assets/2646315c-17bb-4bc4-a938-79c9176605ba)
 
 
-  
+### Automatically start "piedgecctv" at system boot
+
+
+> [!WARNING]
+> This method may present a security hazard as it automatically logs the user in
+
+`sudo raspi-config`
+
+- 1 System Options 
+
+- S6 Auto Login 
+
+Set to "automatically log in to the console" and "automatically log in to the desktop"
+
+__In the following adjust \<user\> for your environment.__
+
+Create a shell script, for example called "/home/\<user\>/CAMERA/PYTHON/start-piedgecctv.sh" containing:
+
+```
+#!/usr/bin/bash
+
+/usr/bin/chmod 0700 /run/user/1000
+cd /home/<user>/CAMERA/PYTHON/
+source ~/CAMERA/PYTHON/VirEnv/bin/activate
+/usr/bin/lxterminal -e "/home/<user>/CAMERA/PYTHON/NEW/piedgecctv.py" &
+```
+
+Make the shell script executable:
+
+`/usr/bin/chmod 0700 /home/<user>/CAMERA/PYTHON/start-piedgecctv.sh`
+
+
+If it doesn't already exist create the directory:
+
+`mkdir /home/<user>/.config/autostart`
+
+within this directory create a file called "cctv.desktop" containing:
+
+```
+[Desktop Entry]
+Type=Application
+Exec=/home/<user>/CAMERA/PYTHON/start-piedgecctv.sh
+```
