@@ -125,7 +125,7 @@ source ~/CAMERA/PYTHON/VirEnv/bin/activate
 
 Make the shell script executable:
 
-`/usr/bin/chmod 0700 /home/<user>/CAMERA/PYTHON/start-piedgecctv.sh`
+`chmod 755 /home/<user>/CAMERA/PYTHON/start-piedgecctv.sh`
 
 
 If it doesn't already exist create the directory:
