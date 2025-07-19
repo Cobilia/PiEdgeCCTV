@@ -96,7 +96,7 @@ This will continue to run even when 'piedgecctv.py' is terminated, if you wish t
 ![Image](https://github.com/user-attachments/assets/2646315c-17bb-4bc4-a938-79c9176605ba)
 
 
-### Automatically start "piedgecctv" at system boot
+### Automatically start PiEdgeCCTV at system boot
 
 
 > [!WARNING]
